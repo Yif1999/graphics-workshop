@@ -12,41 +12,60 @@ void main() {
     coord *= scale;
 
     // "Organic" simplex noise values in range [-1, 1]
+    // 以下数字越大频率越低(注意snoise返回值包含负区间)
     float noise1 = snoise(vec2(seed * 10000.0, 0) + coord);
     float noise2 = snoise(vec2(seed * 10000.0, 1e3) + coord / 2.0);
     float noise4 = snoise(vec2(seed * 10000.0, 2e3) + coord / 4.0);
     float noise8 = snoise(vec2(seed * 10000.0, 3e3) + coord / 8.0);
 
     // Display various scales of simplex noise
-    vec3 color = 0.5 + 0.5 * vec3(noise1, noise2, noise8);
+    // 将三张频率不同的简单噪波贴图分别贴到RGB三通道中
+    vec3 color = 0.5 + 1.0 * vec3(noise1, noise2, noise8);
 
     // 1. Fractal noise scales: uncomment each line, one at a time
-    // color = vec3(0.5);
-    // color += 0.5 * noise8;
-    // color += 0.25 * noise4;
-    // color += 0.1 * noise2;
-    // color += 0.05 * noise1;
+    // 不同频率的噪波以各自的权重叠加到本底中灰上
+    color = vec3(0.5);
+    color += 0.5 * noise8;
+    color += 0.25 * noise4;
+    color += 0.1 * noise2;
+    color += 0.05 * noise1;
 
     // 2. Generate "water" and "land"
-    // float elevation = 0.3 - 0.2 * max(length(coord) - 20.0, 0.0);
-    // elevation += noise8 + noise4 * 0.2 + noise2 * 0.1 + noise1 * 0.05;
-    // float landFactor = smoothstep(-0.05, 0.05, elevation);
-    // float deepSea = smoothstep(-0.1, -0.3, elevation);
-    // float deepColor = 0.8 - 0.3 * smoothstep(-0.2, -0.5, elevation);
-    // vec3 waterColor = mix(vec3(0.2, 0.2, 0.8), vec3(0.0, 0.0, deepColor), deepSea);
-    // color = mix(waterColor, vec3(0.0, 0.6, 0.0), landFactor);
+    // 生成陆地模糊圆形区域mask（从中灰画布中过渡地减去圆形区域以外的明度）
+    float elevation = 0.5 - 0.2 * max(length(coord) - 15.0, 0.0);
+    // 噪波叠加（可以体现为海拔）
+    elevation += noise8 + noise4 * 0.2 + noise2 * 0.1 + noise1 * 0.05;
+    // 平滑选中陆地区域
+    float landFactor = smoothstep(-0.05, 0.05, elevation);
+    // 平滑选中深海区域
+    float deepSea = smoothstep(-0.1, -0.3, elevation);
+    // 深海区域着色权重
+    float deepColor = 0.8 - 0.3 * smoothstep(-0.2, -0.5, elevation);
+    // 整体水域着色权重（mix函数混合材质：材质1+材质2+mask）
+    vec3 waterColor = mix(vec3(0.2, 0.2, 0.8), vec3(0.0, 0.0, deepColor), deepSea);
+    // 水体与陆地混合材质
+    color = mix(waterColor, vec3(0.0, 0.6, 0.0), landFactor);
 
     // 3. Generate "mountains" and "beaches" based on elevation
-    // float mountainFactor = (elevation - 1.0) * 5.0;
-    // vec3 mountainColor = vec3(0.12, 0.15, 0.1);
-    // mountainColor = mix(mountainColor, vec3(0.4, 0.32, 0.4), smoothstep(0.7, 0.8, mountainFactor));
-    // mountainColor = mix(mountainColor, vec3(0.9, 0.9, 0.9), smoothstep(1.1, 1.15, mountainFactor));
-    // vec3 landColor = mix(vec3(0.0, 0.6, 0.0), mountainColor, smoothstep(0.0, 0.1, mountainFactor));
-    // float grassFactor = smoothstep(0.75, 0.7, elevation);
-    // landColor = mix(landColor, vec3(0.2, 0.8, 0.0), grassFactor);
-    // float beachFactor = smoothstep(0.5, 0.4, elevation);
-    // landColor = mix(landColor, vec3(0.9, 0.9, 0.5), beachFactor);
-    // color = mix(waterColor, landColor, landFactor);
+    // 山峰mask
+    float mountainFactor = (elevation - 1.0) * 5.0;
+    // 山峰色值
+    vec3 mountainColor = vec3(0.12, 0.15, 0.1);
+    // 山体混合材质
+    mountainColor = mix(mountainColor, vec3(0.4, 0.32, 0.4), smoothstep(0.7, 0.8, mountainFactor));
+    mountainColor = mix(mountainColor, vec3(0.9, 0.9, 0.9), smoothstep(1.1, 1.15, mountainFactor));
+    // 陆地混合材质加入山区
+    vec3 landColor = mix(vec3(0.0, 0.6, 0.0), mountainColor, smoothstep(0.0, 0.1, mountainFactor));
+    // 草地选区
+    float grassFactor = smoothstep(0.75, 0.7, elevation);
+    // 陆地混合材质加入草地
+    landColor = mix(landColor, vec3(0.2, 0.8, 0.0), grassFactor);
+    // 沙滩选区
+    float beachFactor = smoothstep(0.5, 0.4, elevation);
+    // 陆地混合材质加入沙滩
+    landColor = mix(landColor, vec3(0.9, 0.9, 0.5), beachFactor);
+    // 水体+陆地完整混合材质
+    color = mix(waterColor, landColor, landFactor);
 
     gl_FragColor = vec4(color, 1.0);
 }
