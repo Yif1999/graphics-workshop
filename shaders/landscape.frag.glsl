@@ -33,7 +33,7 @@ void main() {
     // 2. Generate "water" and "land"
     // 生成陆地模糊圆形区域mask（从中灰画布中过渡地减去圆形区域以外的明度）
     float elevation = 0.5 - 0.2 * max(length(coord) - 15.0, 0.0);
-    // 噪波叠加（可以体现为海拔）
+    // 噪波叠加（可以体现为海拔，后续选区均以海拔为参考）
     elevation += noise8 + noise4 * 0.2 + noise2 * 0.1 + noise1 * 0.05;
     // 平滑选中陆地区域
     float landFactor = smoothstep(-0.05, 0.05, elevation);
