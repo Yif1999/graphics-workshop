@@ -10,15 +10,15 @@ uniform vec3 background;
 uniform bool antialias;
 
 struct Ray {
-    vec3 origin;
+    vec3 origin; 
     vec3 dir;
 };
 
 struct Material {
-    vec3 kd;
-    vec3 ks;
-    bool metal;
-    bool checker;
+    vec3 kd;    //漫射系数
+    vec3 ks;    //反光系数
+    bool metal; //金属度
+    bool checker;   //棋盘贴图
 };
 
 struct Hit {
@@ -67,6 +67,7 @@ void circle(inout Hit h, Ray r, float y, float radius, Material m) {
 }
 
 // Intersect a ray with the scene
+// 此函数块中定义了所有光线碰撞体
 Hit intersect(Ray r) {
     Hit h = Hit(inf, vec3(0.0), Material(vec3(0.0), vec3(0.0), false, false));
     sphere(h, r, vec4(0.8, -1.0, -10.0, 1.0),
@@ -75,6 +76,9 @@ Hit intersect(Ray r) {
         Material(vec3(1.0, 0.4, 0.2), vec3(0.8), true, false));
     sphere(h, r, vec4(-3.5, -1.2, -6.0, 0.8),
         Material(vec3(0.2, 0.6, 0.3), vec3(0.8), false, false));
+    // 😄添加一个球
+    sphere(h, r, vec4(-0.5, -1.2, -6.0, 0.4),
+        Material(vec3(0.8, 0.6, 0.3), vec3(0.7), true, false));
     circle(h, r, -2.0, 50.0,
         Material(vec3(0.8, 0.8, 0.8), vec3(0.0), false, true));
     return h;
@@ -82,7 +86,11 @@ Hit intersect(Ray r) {
 
 // Compute lighting from one light
 vec3 illuminate(vec3 lightPosition, vec3 pos, vec3 wo, Hit h) {
+    // pos指向灯光的向量wi
     vec3 wi = lightPosition - pos;
+    // if (intersect(Ray(lightPosition,wi)).time==inf){
+    //     return vec3(0.0,0.0,0.0);
+    // }
     vec3 kd = h.material.kd;
     if (h.material.checker) {
         // Checkerboard pattern for the floor
@@ -105,6 +113,8 @@ vec3 calcLighting(vec3 pos, vec3 wo, Hit h) {
     vec3 color = vec3(0.0);
     color += 100.0 * illuminate(vec3(-3.0, 10.0, 0.0), pos, wo, h);
     color += 200000.0 * illuminate(vec3(0.0, 1000.0, 0.0), pos, wo, h);
+    // 😄添加一盏灯
+    color += 2000.0 * illuminate(vec3(20.0, 50.0, -100.0), pos, wo, h);
     return color;
 }
 
@@ -148,6 +158,7 @@ void main() {
 
     if (antialias) {
         // Anti-aliasing by supersampling multiple rays
+        // 通过超采样实现抗锯齿平滑过渡（每个像素由2×2的4个周边点超采样而来）
         color += 0.25 * tracePixel(gl_FragCoord.xy + vec2(-0.25, -0.25));
         color += 0.25 * tracePixel(gl_FragCoord.xy + vec2(-0.25, +0.25));
         color += 0.25 * tracePixel(gl_FragCoord.xy + vec2(+0.25, -0.25));
