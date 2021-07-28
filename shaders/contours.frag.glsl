@@ -15,7 +15,10 @@ vec3 illuminate(vec3 lightPosition) {
     float intensity = 1.0 / dot(wi, wi); // inverse-square law
     vec3 diffuse = kd * max(dot(normalize(wi), normalize(vNormal)), 0.0);
 
-    vec3 specular = vec3(0.0); // Change me!
+    // 👇个人解答
+    vec3 wo=normalize(vPosition - eye);
+    vec3 r=reflect(normalize(wi),normalize(vNormal));
+    vec3 specular = ks*pow(max(dot(r, wo), 0.0),shininess);
 
     return intensity * (diffuse + specular);
 }
@@ -29,21 +32,25 @@ void main() {
     color += 40.0 * illuminate(vec3(0.0, 3.0, 9.0));
     color += 20.0 * illuminate(vec3(0.0, 10.0, 2.0));
 
-    // Stylized shading
+    // Stylized shading 风格化着色
     float value = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
     color = vec3(0.0);
     vec3 darkblue = vec3(0.2, 0.3, 0.4);
     vec3 blue = vec3(0.5, 0.65, 0.8);
-    vec3 dots = length(fract(coord * 80.0) - 0.5) < sqrt(0.5 - value) ? blue : vec3(1.0);
+    vec3 dots = length(fract(coord * 90.0) - 0.5) < sqrt(0.5 - value) ? blue : vec3(1.0);
+    // step函数以第一个参数为阈值产生阶跃作为mask逐层混合材质
     color = mix(color, darkblue, step(0.2, value));
     color = mix(color, blue, step(0.25, value));
     color = mix(color, dots, step(0.35, value));
     color = mix(color, vec3(1.0), step(0.45, value));
 
-    // Edge estimation
+    // Edge estimation 边缘估计
     float vn = abs(dot(normalize(vNormal), normalize(vPosition - eye)));
+    // fwidth()函数求偏导检测边缘
     float vnGradient = fwidth(vn);
-    float edgeFactor = smoothstep(1.25, 0.75, vn / vnGradient / 5.0);
+    // 强调边缘
+    float edgeFactor = smoothstep(1.25, 0.75, vn / vnGradient / 7.0);
+    // 添加边缘着色
     color = mix(color, vec3(0.1), edgeFactor);
 
     gl_FragColor = vec4(color, 1.0);

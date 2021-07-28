@@ -26,8 +26,11 @@ vec3 illuminate(vec3 lightPosition) {
     //    exponent of the shininess coefficient. (Make sure your
     //    result is not negative!)
     //  - Multiply the result by specular coefficient ks.
-
-    vec3 specular = vec3(0.0); // Change me!
+    
+    // 👇个人解答
+    vec3 wo=normalize(vPosition - eye);
+    vec3 r=reflect(normalize(wi),normalize(vNormal));
+    vec3 specular = ks*pow(max(dot(r, wo), 0.0),shininess);
 
     return intensity * (diffuse + specular);
 }
